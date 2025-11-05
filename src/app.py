@@ -24,9 +24,9 @@ try:
     cred = credentials.Certificate(FIREBASE_CREDENTIALS)
     firebase_admin.initialize_app(cred)
     db = firestore.client()
-    print("✅ Firebase connected!")
+    print("Firebase connected!")
 except Exception as e:
-    print(f"❌ Firebase error: {e}")
+    print(f"Firebase error: {e}")
     db = None
 
 # JWT Helper Functions
@@ -98,19 +98,16 @@ def login():
     data = request.json or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password')
-
     if not email or not password:
         return jsonify({'error': 'Missing fields'}), 400
 
     users_ref = db.collection('users')
     users = list(users_ref.where('email', '==', email).get())
-    
     if not users:
         return jsonify({'error': 'Invalid email or password'}), 401
 
     user_doc = users[0]
     user_data = user_doc.to_dict()
-   
     if not check_password_hash(user_data['password'], password):
         return jsonify({'error': 'Invalid email or password'}), 401
 
