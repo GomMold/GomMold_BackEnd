@@ -64,11 +64,13 @@ def health():
 def signup():
     if db is None:
         return jsonify({'error': 'Database not available'}), 500
+    
     data = request.json or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password')
-    name = data.get('name') or ''
-    if not email or not password or not name:
+    username = data.get('username') or ''
+
+    if not email or not password or not username:
         return jsonify({'error': 'Missing fields'}), 400
     if len(password) < 6:
         return jsonify({'error': 'Password too short'}), 400
@@ -81,46 +83,55 @@ def signup():
     doc_ref = users_ref.add({
         'email': email,
         'password': hashed,
-        'name': name,
+        'username': username,
         'created_at': datetime.datetime.utcnow()
     })
     token = create_token(doc_ref[1].id)
-    return jsonify({'success': True, 'token': token, 'user': {'id': doc_ref[1].id, 'email': email, 'name': name}}), 201
+    return jsonify({'success': True, 'token': token, 'user': {'id': doc_ref[1].id, 'email': email, 'username': username}}), 201
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
+
     if db is None:
         return jsonify({'error': 'Database not available'}), 500
+   
     data = request.json or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password')
+
     if not email or not password:
         return jsonify({'error': 'Missing fields'}), 400
 
     users_ref = db.collection('users')
     users = list(users_ref.where('email', '==', email).get())
+    
     if not users:
-        return jsonify({'error': 'Invalid email/password'}), 401
+        return jsonify({'error': 'Invalid email or password'}), 401
 
     user_doc = users[0]
     user_data = user_doc.to_dict()
+   
     if not check_password_hash(user_data['password'], password):
-        return jsonify({'error': 'Invalid email/password'}), 401
+        return jsonify({'error': 'Invalid email or password'}), 401
 
     token = create_token(user_doc.id)
-    return jsonify({'success': True, 'token': token, 'user': {'id': user_doc.id, 'email': email, 'name': user_data['name']}}), 200
+    return jsonify({'success': True, 'token': token, 'user': {'id': user_doc.id, 'email': email, 'username': user_data['username']}}), 200
 
 @app.route('/api/user/profile', methods=['GET'])
 @token_required
 def profile(current_user_id):
+
     if db is None:
         return jsonify({'error': 'Database not available'}), 500
+    
     doc = db.collection('users').document(current_user_id).get()
+  
     if not doc.exists:
         return jsonify({'error': 'User not found'}), 404
+    
     user = doc.to_dict()
-    return jsonify({'id': current_user_id, 'email': user.get('email'), 'name': user.get('name')}), 200
+    return jsonify({'id': current_user_id, 'email': user.get('email'), 'username': user.get('username')}), 200
 
 # Start Server
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
