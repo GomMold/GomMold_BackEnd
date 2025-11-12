@@ -15,7 +15,6 @@ def init_firebase():
 
     try:
         cred_path = os.getenv("FIREBASE_CREDENTIALS")
-
         if not cred_path:
             raise ValueError("FIREBASE_CREDENTIALS not set in .env")
         
@@ -28,13 +27,7 @@ def init_firebase():
 
         db = firestore.client()
 
-        if os.getenv("FLASK_DEBUG") == "1":
-            print("Firebase connected")
-
-    except Exception as e:
-        if os.getenv("FLASK_DEBUG") == "1":
-            print(f"Firebase error: {e}")
-            
+    except Exception:
         db = None
 
     return db

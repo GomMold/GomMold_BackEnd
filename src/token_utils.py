@@ -1,4 +1,3 @@
-# src/token_utils.py
 import datetime
 import jwt
 from functools import wraps
