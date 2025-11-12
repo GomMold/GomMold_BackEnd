@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from firebase_init import init_firebase
 from routes.auth import auth_bp
 from routes.user import user_bp
+from routes.mold import mold_bp
 
 load_dotenv()
 
@@ -15,6 +16,7 @@ init_firebase()
 
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(user_bp, url_prefix="/api/user")
+app.register_blueprint(mold_bp, url_prefix="/api/mold")
 
 @app.route("/health")
 def health():
