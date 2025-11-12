@@ -1,4 +1,3 @@
-# src/app.py
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -9,13 +8,11 @@ from routes.user import user_bp
 load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "dummy"  # loaded in token_utils
+app.config["SECRET_KEY"] = "test123"
 CORS(app)
 
-# Initialize Firebase BEFORE registering routes
 init_firebase()
 
-# Register blueprints
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(user_bp, url_prefix="/api/user")
 

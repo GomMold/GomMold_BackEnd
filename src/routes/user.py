@@ -7,17 +7,21 @@ user_bp = Blueprint("user_bp", __name__)
 @user_bp.route("/profile", methods=["GET"])
 @token_required
 def profile(current_user_id):
-    db = init_firebase()  # <--- initialize Firebase here
+    db = init_firebase()
     if db is None:
-        return jsonify({"error": "Database not available"}), 500
-
+        return jsonify({"success": False, "error": "Server connection error"}), 500
+    
     doc = db.collection("users").document(current_user_id).get()
+
     if not doc.exists:
-        return jsonify({"error": "User not found"}), 404
+        return jsonify({"success": False, "error": "User not found"}), 404
 
     user_data = doc.to_dict()
     return jsonify({
-        "id": doc.id,
-        "email": user_data.get("email"),
-        "username": user_data.get("username")
+        "success": True,
+        "data": {
+            "id": doc.id,
+            "email": user_data.get("email"),
+            "username": user_data.get("username")
+        }
     }), 200
