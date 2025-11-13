@@ -18,7 +18,7 @@ init_firebase()
 
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(user_bp, url_prefix="/api/user")
-app.register_blueprint(history_bp, url_prefix="/api/mold")
+app.register_blueprint(history_bp, url_prefix="/api/history")
 app.register_blueprint(mold_bp, url_prefix="/api/mold")
 app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
 
