@@ -2,9 +2,11 @@ from flask import Blueprint, request, jsonify
 from firebase_init import init_firebase
 from token_utils import token_required
 from roboflow import Roboflow
+from firebase_admin import storage
 import datetime
 import pytz
 import os
+import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
@@ -18,27 +20,54 @@ def detect_mold(current_user_id):
     db = init_firebase()
     if db is None:
         return jsonify({"success": False, "error": "Server connection error"}), 500
-
+    
+    FIREBASE_BUCKET = os.getenv("FIREBASE_BUCKET")
+    bucket = storage.bucket(name=FIREBASE_BUCKET)
+    
     if "image" not in request.files:
         return jsonify({"success": False, "error": "No image uploaded"}), 400
 
     image = request.files["image"]
     filename = image.filename or "unknown.jpg"
 
+    blob = bucket.blob(f"detections/{current_user_id}/{filename}")
+    blob.upload_from_file(image.stream, content_type=image.content_type)
+    image_url = blob.public_url
+
+    image.stream.seek(0)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+        image.save(tmp.name)
+        tmp_path = tmp.name
+
     kst = pytz.timezone("Asia/Seoul")
     current_time = datetime.datetime.now(kst)
     formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-        prediction = model.predict(image, confidence=40, overlap=30).json()
+        prediction = model.predict(tmp_path, confidence=70, overlap=30).json()
         predictions = prediction.get("predictions", [])
 
-        if predictions:
-            mold_type = predictions[0]["class"]
+        predictions_clean = [
+            {
+                "x": p["x"],
+                "y": p["y"],
+                "width": p["width"],
+                "height": p["height"],
+                "class": p["class"],
+                "confidence": round(p["confidence"], 2)
+            }
+            for p in predictions
+            if p["confidence"] >= 0.5
+        ]
+
+        if predictions_clean:
+            mold_type = predictions_clean [0]["class"]
             result = {
                 "status": "warning",
                 "message": "Mold detected!",
                 "mold_type": mold_type,
+                "predictions": predictions_clean,
                 "advice": "Avoid contact and ventilate the area immediately.",
                 "risk_level": "High",
                 "color": "red",
@@ -56,10 +85,14 @@ def detect_mold(current_user_id):
         db.collection("detections").add({
             "user_id": current_user_id,
             "image_name": filename,
+            "image_url": image_url,
             "result": result["status"],
             "message": result["message"],
+            "predictions": predictions_clean,
             "timestamp": current_time
         })
+
+        os.remove(tmp_path)
 
         return jsonify({
             "success": True,
