@@ -5,6 +5,7 @@ from firebase_init import init_firebase
 from routes.auth import auth_bp
 from routes.user import user_bp
 from routes.history import history_bp
+from routes.chatbot import chatbot_bp
 
 load_dotenv()
 
@@ -17,6 +18,7 @@ init_firebase()
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(user_bp, url_prefix="/api/user")
 app.register_blueprint(history_bp, url_prefix="/api/mold")
+app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
 
 @app.route("/health")
 def health():
