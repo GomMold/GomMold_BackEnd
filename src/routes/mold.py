@@ -30,14 +30,16 @@ def detect_mold(current_user_id):
     image = request.files["image"]
     filename = image.filename or "unknown.jpg"
 
-    blob = bucket.blob(f"detections/{current_user_id}/{filename}")
-    blob.upload_from_file(image.stream, content_type=image.content_type)
-    image_url = blob.public_url
-
+    image_stream_copy = image.stream.read()
+    image_stream_length = len(image_stream_copy)
     image.stream.seek(0)
 
+    blob = bucket.blob(f"detections/{current_user_id}/{filename}")
+    blob.upload_from_file(image.stream_copy, content_type=image.content_type)
+    image_url = blob.public_url
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
-        image.save(tmp.name)
+        tmp.write(image_stream_copy)
         tmp_path = tmp.name
 
     kst = pytz.timezone("Asia/Seoul")
