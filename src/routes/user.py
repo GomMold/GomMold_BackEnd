@@ -53,6 +53,8 @@ def update_user(current_user_id):
                 return jsonify({"success": False, "error": "Username has been taken."}), 400
 
     if "password" in data:
+        if len(data["password"]) < 5:
+            return jsonify({"success": False, "error": "Password too short."}), 400
         updates["password"] = generate_password_hash(data["password"])
 
     if updates:
