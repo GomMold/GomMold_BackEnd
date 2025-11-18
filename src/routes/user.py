@@ -43,7 +43,14 @@ def update_user(current_user_id):
         return jsonify({"success": False, "error": "No data provided"}), 400
 
     if "username" in data:
-        updates["username"] = data["username"]
+        new_username = data["username"]
+        users_ref = db.collection("users")
+
+        existing_users = users_ref.where("username", "==", new_username).get()
+
+        for doc in existing_users:
+            if doc.id != current_user_id:
+                return jsonify({"success": False, "error": "Username has been taken."}), 400
 
     if "password" in data:
         updates["password"] = generate_password_hash(data["password"])

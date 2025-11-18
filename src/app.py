@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ from routes.mold import mold_bp
 load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "test123"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 CORS(app)
 
 init_firebase()
