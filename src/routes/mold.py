@@ -29,22 +29,21 @@ def detect_mold(current_user_id):
 
     image = request.files["image"]
     filename = image.filename or "unknown.jpg"
+    
+    image_bytes = image.read()
 
-    image_stream_copy = image.stream.read()
-    image_stream_length = len(image_stream_copy)
     image.stream.seek(0)
-
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
-    blob.upload_from_file(image.stream_copy, content_type=image.content_type)
+    blob.upload_from_file(image.stream, content_type=image.content_type)
     image_url = blob.public_url
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
-        tmp.write(image_stream_copy)
+        tmp.write(image_bytes)
         tmp_path = tmp.name
 
     kst = pytz.timezone("Asia/Seoul")
     current_time = datetime.datetime.now(kst)
-    formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    formatted_time = current_time.strftime("%Y-%m-%d %H:%M")
 
     try:
         prediction = model.predict(tmp_path, confidence=70, overlap=30).json()
