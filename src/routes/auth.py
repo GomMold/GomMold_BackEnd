@@ -13,8 +13,8 @@ def signup():
 
     data = request.json or {}
     email = (data.get("email") or "").strip().lower()
-    password = data.get("password")
     username = data.get("username") or ""
+    password = data.get("password")
 
     if not email or not password or not username:
         return jsonify({"success": False, "error": "Missing fields"}), 400

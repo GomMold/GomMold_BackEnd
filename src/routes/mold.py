@@ -30,6 +30,8 @@ def detect_mold(current_user_id):
     image = request.files["image"]
     filename = image.filename or "unknown.jpg"
     
+    analysis_name = request.form.get("analysis_name") or "Untitled"
+
     image_bytes = image.read()
 
     image.stream.seek(0)
@@ -63,14 +65,11 @@ def detect_mold(current_user_id):
         ]
 
         if predictions_clean:
-            mold_type = predictions_clean [0]["class"]
+            # mold_type = predictions_clean [0]["class"]
             result = {
                 "status": "warning",
                 "message": "Mold detected!",
-                "mold_type": mold_type,
                 "predictions": predictions_clean,
-                "advice": "Avoid contact and ventilate the area immediately.",
-                "risk_level": "High",
                 "color": "red",
                 "timestamp": formatted_time
              }
@@ -78,13 +77,14 @@ def detect_mold(current_user_id):
         else:
             result = {
                 "status": "safe",
-                "message": "You are safe. No mold detected.",
+                "message": "No mold detected!",
                 "color": "green",
                 "timestamp": formatted_time
             }
 
         db.collection("detections").add({
             "user_id": current_user_id,
+            "analysis_name": analysis_name,
             "image_name": filename,
             "image_url": image_url,
             "result": result["status"],
@@ -97,9 +97,14 @@ def detect_mold(current_user_id):
 
         return jsonify({
             "success": True,
-            "data": result,
-            "message": "Detection completed successfully."
-        }), 200
+            "data": {
+                **result,
+                "analysis_name": analysis_name,
+                "image_url": image_url,
+                "predictions": predictions_clean
+        },
+        "message": "Detection completed successfully."
+    }), 200
 
     except Exception as e:
         return jsonify({"success": False, "error": f"Detection or Database error: {e}"}), 500
