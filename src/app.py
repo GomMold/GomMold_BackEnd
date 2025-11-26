@@ -2,12 +2,12 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
-from firebase_init import init_firebase
-from routes.auth import auth_bp
-from routes.user import user_bp
-from routes.history import history_bp
-from routes.chatbot import chatbot_bp
-from routes.mold import mold_bp
+from src.firebase_init import init_firebase
+from src.routes.auth import auth_bp
+from src.routes.user import user_bp
+from src.routes.history import history_bp
+from src.routes.chatbot import chatbot_bp
+from src.routes.mold import mold_bp
 
 load_dotenv()
 

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from firebase_init import init_firebase
-from token_utils import create_token
+from src.firebase_init import init_firebase
+from src.token_utils import create_token
 
 auth_bp = Blueprint("auth_bp", __name__)
 

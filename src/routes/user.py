@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
-from firebase_init import init_firebase
-from token_utils import token_required
+from src.firebase_init import init_firebase
+from src.token_utils import token_required
 from flask import Blueprint, request, jsonify
 from firebase_admin import auth
 from werkzeug.security import generate_password_hash

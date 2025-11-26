@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
-from firebase_init import init_firebase
-from token_utils import token_required
+from src.firebase_init import init_firebase
+from src.token_utils import token_required
 from firebase_admin import storage
-from ml_model import predict_image
+from src.ml_model import predict_image
 import datetime
 import pytz
 import os

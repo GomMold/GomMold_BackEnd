@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from firebase_init import init_firebase
-from token_utils import token_required
+from src.firebase_init import init_firebase
+from src.token_utils import token_required
 from google.cloud import firestore
 import datetime
 
