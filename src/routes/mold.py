@@ -29,13 +29,11 @@ def detect_mold(current_user_id):
 
     image_bytes = image.read()
 
-    # upload to firebase
     image.stream.seek(0)
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
     blob.upload_from_file(image.stream, content_type=image.content_type)
     image_url = blob.public_url
 
-    # save temp file
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
         tmp.write(image_bytes)
         tmp_path = tmp.name
@@ -43,7 +41,6 @@ def detect_mold(current_user_id):
     try:
         predictions = predict_image(tmp_path)
 
-        # filter strong predictions only
         predictions_clean = [p for p in predictions if p["confidence"] >= 0.25]
 
         kst = pytz.timezone("Asia/Seoul")
@@ -66,7 +63,6 @@ def detect_mold(current_user_id):
                 "timestamp": formatted_time
             }
 
-        # save to firestore
         db.collection("detections").add({
             "user_id": current_user_id,
             "analysis_name": analysis_name,

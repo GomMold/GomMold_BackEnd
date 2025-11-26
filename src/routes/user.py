@@ -51,6 +51,8 @@ def update_user(current_user_id):
         for doc in existing_users:
             if doc.id != current_user_id:
                 return jsonify({"success": False, "error": "Username has been taken."}), 400
+        
+        updates["username"] =  new_username
 
     if "password" in data:
         if len(data["password"]) < 5:
