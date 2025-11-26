@@ -25,11 +25,14 @@ def detect_mold(current_user_id):
 
     image = request.files["image"]
     filename = image.filename or "uploaded.jpg"
-    analysis_name = request.form.get("analysis_name") or "Untitled"
+
+    analysis_name = request.form.get("analysis_name", "Untitled").strip()
+    if not analysis_name:
+        analysis_name = "Untitled"
 
     image_bytes = image.read()
-
     image.stream.seek(0)
+
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
     blob.upload_from_file(image.stream, content_type=image.content_type)
     image_url = blob.public_url
@@ -42,16 +45,17 @@ def detect_mold(current_user_id):
         predictions = predict_image(tmp_path)
 
         predictions_clean = [p for p in predictions if p["confidence"] >= 0.25]
+        
+        has_mold = any(p["class"] == "mould" for p in predictions_clean)
 
         kst = pytz.timezone("Asia/Seoul")
         current_time = datetime.datetime.now(kst)
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M")
 
-        if predictions_clean:
+        if has_mold:
             result = {
                 "status": "warning",
                 "message": "Mold detected",
-                "predictions": predictions_clean,
                 "color": "red",
                 "timestamp": formatted_time
             }
