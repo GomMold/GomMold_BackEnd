@@ -1,21 +1,18 @@
 import os
 import requests
-import torch
-from ultralytics import YOLO
-from ultralytics.nn.tasks import DetectionModel
-from ultralytics.nn.modules.conv import Conv
-from torch.nn.modules.conv import Conv2d
-from torch.nn.modules.batchnorm import BatchNorm2d
+import numpy as np
+import cv2
+import onnxruntime as ort
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
-MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
+MODEL_PATH = os.path.join(MODEL_DIR, "best.onnx")
 MODEL_URL = os.getenv("MODEL_URL")
 
 def download_model():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     if not os.path.exists(MODEL_PATH):
-        print("Downloading model from Firebase...")
+        print("Downloading ONNX model...")
 
         if not MODEL_URL:
             raise RuntimeError("MODEL_URL environment variable is not set")
@@ -30,44 +27,52 @@ def download_model():
 
         print("Download complete.")
     else:
-        print("Model already exists locally. Skipping download.")
+        print("Model already exists. Skipping.")
 
 def load_model():
-    print("Checking YOLO model...")
     download_model()
 
-    print("Loading YOLO model...")
+    print("Loading ONNX model...")
+    session = ort.InferenceSession(MODEL_PATH, providers=["CPUExecutionProvider"])
+    print("ONNX model loaded successfully.")
+    return session
 
-    torch.serialization.add_safe_globals([
-        torch.nn.modules.container.Sequential,
-        Conv,
-        Conv2d,
-        BatchNorm2d,
-        DetectionModel,
-    ])
+session = load_model()
 
-    model = YOLO(MODEL_PATH)
-    print("YOLO model loaded successfully.")
-    return model
+def preprocess_image(image_path):
+    img = cv2.imread(image_path)
 
-model = load_model()
+    if img is None:
+        raise ValueError("Could not load image.")
+
+    img_resized = cv2.resize(img, (640, 640))
+    img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+
+    img_input = img_rgb.astype(np.float32) / 255.0
+    img_input = np.transpose(img_input, (2, 0, 1))
+    img_input = np.expand_dims(img_input, axis=0)
+
+    return img_input, img.shape[1], img.shape[0]
 
 def predict_image(image_path):
-    results = model(image_path)[0]
+    img_input, orig_w, orig_h = preprocess_image(image_path)
 
-    predictions_clean = []
-    for box in results.boxes:
-        cls = int(box.cls.item())
-        conf = float(box.conf.item())
-        x1, y1, x2, y2 = box.xyxy[0].tolist()
+    outputs = session.run(None, {session.get_inputs()[0].name: img_input})
+    predictions = outputs[0][0]
+    boxes = []
+    for pred in predictions:
+        x1, y1, x2, y2, score, cls = pred
 
-        predictions_clean.append({
-            "x": (x1 + x2) / 2,
-            "y": (y1 + y2) / 2,
-            "width": x2 - x1,
-            "height": y2 - y1,
-            "class": results.names[cls],
-            "confidence": round(conf, 2)
+        if score < 0.5:
+            continue
+
+        boxes.append({
+            "x": float((x1 + x2) / 2),
+            "y": float((y1 + y2) / 2),
+            "width": float(x2 - x1),
+            "height": float(y2 - y1),
+            "class": int(cls),
+            "confidence": round(float(score), 2)
         })
 
-    return predictions_clean
+    return boxes

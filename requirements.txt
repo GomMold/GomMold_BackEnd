@@ -6,9 +6,9 @@ google-cloud-storage==2.14.0
 google-cloud-firestore==2.14.0
 gunicorn==21.2.0
 openai==1.40.3
-ultralytics==8.2.50
+onnxruntime==1.18.0
+numpy==1.26.4
 opencv-python-headless==4.7.0.72
-pillow>=10.2.0
 requests==2.31.0
 PyJWT==2.8.0
 pytz==2024.1
