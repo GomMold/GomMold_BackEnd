@@ -2,7 +2,6 @@ services:
   - type: web
     name: gommold-backend
     env: python
-    pythonVersion: 3.10.14
     branch: main
     region: singapore
 
