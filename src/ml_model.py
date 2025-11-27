@@ -2,7 +2,8 @@ import os
 import requests
 import torch
 from ultralytics import YOLO
-from ultralytics.nn.tasks import DetectionModel  # 👈 important
+from ultralytics.nn.tasks import DetectionModel
+from ultralytics.nn.modules.conv import Conv
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
@@ -39,6 +40,7 @@ def load_model():
     torch.serialization.add_safe_globals([
         torch.nn.modules.container.Sequential,
         DetectionModel,
+        Conv,
     ])
 
     model = YOLO(MODEL_PATH)
