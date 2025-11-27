@@ -2,6 +2,7 @@ services:
   - type: web
     name: gommold-backend
     env: python
+    plan: free
     region: singapore
     branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
