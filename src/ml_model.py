@@ -2,16 +2,21 @@ import os
 import requests
 import torch
 from ultralytics import YOLO
+from ultralytics.nn.tasks import DetectionModel  # 👈 important
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
 MODEL_URL = os.getenv("MODEL_URL")
+
 
 def download_model():
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     if not os.path.exists(MODEL_PATH):
         print("Downloading model from Firebase...")
+        if not MODEL_URL:
+            raise RuntimeError("MODEL_URL environment variable is not set")
+
         response = requests.get(MODEL_URL, stream=True)
 
         if response.status_code != 200:
@@ -24,13 +29,17 @@ def download_model():
     else:
         print("Model already exists locally. Skipping download.")
 
+
 def load_model():
     print("Checking YOLO model...")
     download_model()
 
     print("Loading YOLO model...")
 
-    torch.serialization.add_safe_globals([torch.nn.modules.container.Sequential])
+    torch.serialization.add_safe_globals([
+        torch.nn.modules.container.Sequential,
+        DetectionModel,
+    ])
 
     model = YOLO(MODEL_PATH)
     print("YOLO model loaded successfully.")
@@ -53,7 +62,7 @@ def predict_image(image_path):
             "width": x2 - x1,
             "height": y2 - y1,
             "class": results.names[cls],
-            "confidence": round(conf, 2)
+            "confidence": round(conf, 2),
         })
 
     return predictions_clean
