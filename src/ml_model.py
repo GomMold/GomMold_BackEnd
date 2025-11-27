@@ -2,9 +2,10 @@ import os
 import requests
 import torch
 from ultralytics import YOLO
-from ultralytics.nn.tasks import DetectionModel
-from ultralytics.nn.modules.conv import Conv, Conv2d as UltralyticsConv2d
-from torch.nn.modules.conv import Conv2d
+# Removed problematic imports:
+# from ultralytics.nn.tasks import DetectionModel
+# from ultralytics.nn.modules.conv import Conv
+# from torch.nn.modules.conv import Conv2d
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
@@ -37,21 +38,19 @@ def load_model():
 
     print("Loading YOLO model...")
 
-    torch.serialization.add_safe_globals([
-        torch.nn.modules.container.Sequential,
-        Conv,
-        UltralyticsConv2d,
-        Conv2d,
-        DetectionModel,
-    ])
+    # The block below was removed as it caused the ImportError on newer Python/ultralytics versions.
+    # torch.serialization.add_safe_globals([
+    #     torch.nn.modules.container.Sequential,
+    #     Conv,
+    #     Conv2d,
+    #     DetectionModel,
+    # ])
 
     model = YOLO(MODEL_PATH)
     print("YOLO model loaded successfully.")
     return model
 
-
 model = load_model()
-
 
 def predict_image(image_path):
     results = model(image_path)[0]
@@ -68,7 +67,7 @@ def predict_image(image_path):
             "width": x2 - x1,
             "height": y2 - y1,
             "class": results.names[cls],
-            "confidence": round(conf, 2)
+            "confidence": round(conf, 2),
         })
 
     return predictions_clean
