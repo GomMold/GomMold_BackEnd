@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 import onnxruntime as ort
 
+img = cv2.imread(str(image_path))
+
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.onnx")
 MODEL_URL = os.getenv("MODEL_URL")
@@ -40,7 +42,7 @@ def load_model():
 session = load_model()
 
 def preprocess_image(image_path):
-    img = cv2.imread(image_path)
+    img = cv2.imread(str(image_path))
 
     if img is None:
         raise ValueError("Could not load image.")
@@ -57,11 +59,19 @@ def preprocess_image(image_path):
 def predict_image(image_path):
     img_input, orig_w, orig_h = preprocess_image(image_path)
 
-    outputs = session.run(None, {session.get_inputs()[0].name: img_input})
-    predictions = outputs[0][0]
+    output = session.run(None, {session.get_inputs()[0].name: img_input})[0][0]
+
     boxes = []
-    for pred in predictions:
-        x1, y1, x2, y2, score, cls = pred
+
+    for pred in output:
+        x1, y1, x2, y2 = pred[:4]
+        obj_conf = pred[4]
+        class_scores = pred[5:]
+
+        cls = np.argmax(class_scores)
+        cls_conf = class_scores[cls]
+
+        score = obj_conf * cls_conf
 
         if score < 0.5:
             continue

@@ -10,6 +10,8 @@ import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
+CLASS_NAMES = ["mold", "no_mold"]
+
 @mold_bp.route("/detect", methods=["POST"])
 @token_required
 def detect_mold(current_user_id):
@@ -44,9 +46,16 @@ def detect_mold(current_user_id):
     try:
         predictions = predict_image(tmp_path)
 
-        predictions_clean = [p for p in predictions if p["confidence"] >= 0.25]
-        
-        has_mold = any(p["class"] == "mould" for p in predictions_clean)
+        predictions_clean = []
+        for p in predictions:
+            predictions_clean.append({
+                **p,
+                "class_name": CLASS_NAMES[p["class"]] if p["class"] < len(CLASS_NAMES) else "unknown"
+            })
+
+        predictions_clean = [p for p in predictions_clean if p["confidence"] >= 0.25]
+
+        has_mold = any(p["class_name"] == "mold" for p in predictions_clean)
 
         kst = pytz.timezone("Asia/Seoul")
         current_time = datetime.datetime.now(kst)
