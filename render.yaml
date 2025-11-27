@@ -2,12 +2,12 @@ services:
   - type: web
     name: gommold-backend
     env: python
-    branch: main
     region: singapore
+    branch: main
 
     pythonVersion: 3.10.14
 
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: gunicorn src.app:app
 
     plan: free
