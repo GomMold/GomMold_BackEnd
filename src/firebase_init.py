@@ -1,7 +1,6 @@
-import os
-import json
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
+import os
 
 db = None
 
@@ -12,20 +11,12 @@ def init_firebase():
         return db
 
     try:
-        cred_json = os.getenv("FIREBASE_CREDENTIALS")
-        bucket_name = os.getenv("FIREBASE_BUCKET")
-
-        if not cred_json:
-            raise ValueError("Missing FIREBASE_CREDENTIALS")
-        if not bucket_name:
-            raise ValueError("Missing FIREBASE_BUCKET")
-
-        cred_dict = json.loads(cred_json)
+        cred_path = os.path.join(os.path.dirname(__file__), "..", "firebase_service_key.json")
 
         if not firebase_admin._apps:
-            cred = credentials.Certificate(cred_dict)
+            cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred, {
-                "storageBucket": bucket_name
+                "storageBucket": os.getenv("FIREBASE_BUCKET")
             })
 
         db = firestore.client()
