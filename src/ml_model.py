@@ -1,24 +1,42 @@
 import os
+import requests
 import torch
 from ultralytics import YOLO
-from torch.serialization import add_safe_globals
 
-from ultralytics.nn.tasks import DetectionModel
-add_safe_globals([DetectionModel])
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
+MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
+MODEL_URL = os.getenv("MODEL_URL")
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "models/best.pt")
-print("Checking YOLO model...")
+def download_model():
+    os.makedirs(MODEL_DIR, exist_ok=True)
+
+    if not os.path.exists(MODEL_PATH):
+        print("Downloading model from Firebase...")
+        response = requests.get(MODEL_URL, stream=True)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to download model: HTTP {response.status_code}")
+
+        with open(MODEL_PATH, "wb") as f:
+            f.write(response.content)
+
+        print("Download complete.")
+    else:
+        print("Model already exists locally. Skipping download.")
 
 def load_model():
-    if os.path.exists(MODEL_PATH):
-        print("Model already exists locally. Skipping download.")
-        return YOLO(MODEL_PATH)
-    else:
-        raise FileNotFoundError(f"YOLO model not found at: {MODEL_PATH}")
+    print("Checking YOLO model...")
+    download_model()
 
-print("Loading YOLO model...")
+    print("Loading YOLO model...")
+
+    torch.serialization.add_safe_globals([torch.nn.modules.container.Sequential])
+
+    model = YOLO(MODEL_PATH)
+    print("YOLO model loaded successfully.")
+    return model
+
 model = load_model()
-print("Model loaded successfully.")
 
 def predict_image(image_path):
     results = model(image_path)[0]
