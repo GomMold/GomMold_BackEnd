@@ -2,10 +2,11 @@ import os
 import requests
 import torch
 from ultralytics import YOLO
-# Removed problematic imports:
-# from ultralytics.nn.tasks import DetectionModel
-# from ultralytics.nn.modules.conv import Conv
-# from torch.nn.modules.conv import Conv2d
+from ultralytics.nn.tasks import DetectionModel
+from ultralytics.nn.modules.conv import Conv
+from ultralytics.nn.modules.block import C2f, SPPF, Bottleneck
+from torch.nn.modules.conv import Conv2d
+import torch.nn as nn
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
@@ -21,7 +22,6 @@ def download_model():
             raise RuntimeError("MODEL_URL environment variable is not set")
 
         response = requests.get(MODEL_URL, stream=True)
-
         if response.status_code != 200:
             raise Exception(f"Failed to download model: HTTP {response.status_code}")
 
@@ -38,13 +38,15 @@ def load_model():
 
     print("Loading YOLO model...")
 
-    # The block below was removed as it caused the ImportError on newer Python/ultralytics versions.
-    # torch.serialization.add_safe_globals([
-    #     torch.nn.modules.container.Sequential,
-    #     Conv,
-    #     Conv2d,
-    #     DetectionModel,
-    # ])
+    torch.serialization.add_safe_globals([
+        nn.Sequential,
+        Conv,
+        Conv2d,
+        C2f,
+        SPPF,
+        Bottleneck,
+        DetectionModel,
+    ])
 
     model = YOLO(MODEL_PATH)
     print("YOLO model loaded successfully.")
