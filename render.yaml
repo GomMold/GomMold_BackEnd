@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: gommold-backend
+    env: python
+    branch: main
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn src.app:app
+    pythonVersion: 3.10
