@@ -1,7 +1,38 @@
-from ultralytics import YOLO
 import os
+import requests
+from ultralytics import YOLO
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "models/best.pt")
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
+MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
+
+MODEL_URL = os.getenv("MODEL_URL")
+
+def download_model():
+    if os.path.exists(MODEL_PATH):
+        print("Model already exists locally. Skipping download.")
+        return
+
+    if not MODEL_URL:
+        raise ValueError("MODEL_URL environment variable not set.")
+
+    os.makedirs(MODEL_DIR, exist_ok=True)
+
+    print(f"Downloading model from: {MODEL_URL}")
+    
+    response = requests.get(MODEL_URL, stream=True)
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to download model. Status: {response.status_code}")
+
+    with open(MODEL_PATH, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+
+    print("Model downloaded and saved at:", MODEL_PATH)
+
+print("Checking YOLO model...")
+
+download_model()
 
 print("Loading YOLO model...")
 model = YOLO(MODEL_PATH)

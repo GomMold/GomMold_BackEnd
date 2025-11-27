@@ -5,15 +5,17 @@ services:
     branch: main
     region: singapore
 
-    pythonVersion: 3.10
+    pythonVersion: 3.10.14
 
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn src.app:app
 
     plan: free
     autoDeploy: true
 
     envVars:
+      - key: SECRET_KEY
+      - key: OPENAI_API_KEY
       - key: FIREBASE_BUCKET
       - key: FIREBASE_CREDENTIALS
-      - key: OPENAI_API_KEY
+      - key: MODEL_URL

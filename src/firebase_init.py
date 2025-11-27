@@ -1,9 +1,7 @@
 import os
+import json
 import firebase_admin
-from firebase_admin import credentials, firestore
-from dotenv import load_dotenv
-
-load_dotenv()
+from firebase_admin import credentials, firestore, storage
 
 db = None
 
@@ -14,28 +12,25 @@ def init_firebase():
         return db
 
     try:
-        cred_path = os.getenv("FIREBASE_CREDENTIALS")
+        cred_json = os.getenv("FIREBASE_CREDENTIALS")
         bucket_name = os.getenv("FIREBASE_BUCKET")
 
-        if not cred_path:
-            raise ValueError("FIREBASE_CREDENTIALS not set in .env")
-        
+        if not cred_json:
+            raise ValueError("Missing FIREBASE_CREDENTIALS")
         if not bucket_name:
-            raise ValueError("FIREBASE_BUCKET not set in .env")
-        
-        if not os.path.isabs(cred_path):
-            cred_path = os.path.join(os.path.dirname(__file__), cred_path)
+            raise ValueError("Missing FIREBASE_BUCKET")
+
+        cred_dict = json.loads(cred_json)
 
         if not firebase_admin._apps:
-            cred = credentials.Certificate(cred_path)
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred, {
                 "storageBucket": bucket_name
             })
 
         db = firestore.client()
+        return db
 
     except Exception as e:
         print("Firebase init error:", e)
-        db = None
-
-    return db
+        return None
