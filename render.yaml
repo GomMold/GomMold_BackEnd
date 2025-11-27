@@ -7,9 +7,3 @@ services:
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: gunicorn src.app:app --bind 0.0.0.0:$PORT
     autoDeploy: true
-    envVars:
-      - key: SECRET_KEY
-      - key: OPENAI_API_KEY
-      - key: FIREBASE_BUCKET
-      - key: FIREBASE_CREDENTIALS
-      - key: MODEL_URL
