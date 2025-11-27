@@ -4,8 +4,6 @@ import numpy as np
 import cv2
 import onnxruntime as ort
 
-img = cv2.imread(str(image_path))
-
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.onnx")
 MODEL_URL = os.getenv("MODEL_URL")
