@@ -4,9 +4,8 @@ import torch
 from ultralytics import YOLO
 from ultralytics.nn.tasks import DetectionModel
 from ultralytics.nn.modules.conv import Conv
-from ultralytics.nn.modules.block import C2f, SPPF, Bottleneck
 from torch.nn.modules.conv import Conv2d
-import torch.nn as nn
+from torch.nn.modules.batchnorm import BatchNorm2d
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
@@ -22,6 +21,7 @@ def download_model():
             raise RuntimeError("MODEL_URL environment variable is not set")
 
         response = requests.get(MODEL_URL, stream=True)
+
         if response.status_code != 200:
             raise Exception(f"Failed to download model: HTTP {response.status_code}")
 
@@ -39,12 +39,10 @@ def load_model():
     print("Loading YOLO model...")
 
     torch.serialization.add_safe_globals([
-        nn.Sequential,
+        torch.nn.modules.container.Sequential,
         Conv,
         Conv2d,
-        C2f,
-        SPPF,
-        Bottleneck,
+        BatchNorm2d,
         DetectionModel,
     ])
 
@@ -69,7 +67,7 @@ def predict_image(image_path):
             "width": x2 - x1,
             "height": y2 - y1,
             "class": results.names[cls],
-            "confidence": round(conf, 2),
+            "confidence": round(conf, 2)
         })
 
     return predictions_clean
