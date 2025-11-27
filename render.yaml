@@ -8,7 +8,7 @@ services:
     pythonVersion: 3.10.14
 
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: gunicorn src.app:app
+    startCommand: gunicorn src.app:app --bind 0.0.0.0:$PORT
 
     plan: free
     autoDeploy: true
