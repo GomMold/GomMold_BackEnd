@@ -24,6 +24,7 @@ def start_chat():
         ]
     }), 200
 
+
 @chatbot_bp.route("/query", methods=["POST"])
 def query_chat():
     client = get_openai_client()
@@ -35,8 +36,10 @@ def query_chat():
         return jsonify({"success": False, "error": "Missing question"}), 400
 
     try:
-        response = client.chat.completions.create(
+        # NEW OpenAI SDK (Responses API)
+        response = client.responses.create(
             model="gpt-4o-mini",
+<<<<<<< Updated upstream
             messages=[
                 {"role": "system", "content": 
                  "You are a friendly and informative mold prevention assistant. "
@@ -45,6 +48,17 @@ def query_chat():
             ]
         )
         answer = response.choices[0].message.content.strip()
+=======
+            input=question,
+            instructions=(
+                "You are a friendly mold-prevention assistant. "
+                "Provide short, safe, and helpful advice."
+            )
+        )
+
+        # Extract text properly (new SDK)
+        answer = response.output_text
+>>>>>>> Stashed changes
 
         return jsonify({"success": True, "data": {"answer": answer}}), 200
 
