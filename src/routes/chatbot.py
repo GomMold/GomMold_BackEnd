@@ -39,16 +39,6 @@ def query_chat():
         # NEW OpenAI SDK (Responses API)
         response = client.responses.create(
             model="gpt-4o-mini",
-<<<<<<< Updated upstream
-            messages=[
-                {"role": "system", "content": 
-                 "You are a friendly and informative mold prevention assistant. "
-                 "Provide short, clear, and safe advice about mold."},
-                {"role": "user", "content": question}
-            ]
-        )
-        answer = response.choices[0].message.content.strip()
-=======
             input=question,
             instructions=(
                 "You are a friendly mold-prevention assistant. "
@@ -58,7 +48,6 @@ def query_chat():
 
         # Extract text properly (new SDK)
         answer = response.output_text
->>>>>>> Stashed changes
 
         return jsonify({"success": True, "data": {"answer": answer}}), 200
 
