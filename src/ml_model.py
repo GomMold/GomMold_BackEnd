@@ -20,7 +20,7 @@ def download_model():
         response = requests.get(MODEL_URL, stream=True)
 
         if response.status_code != 200:
-            raise Exception(f"Failed to download model: HTTP", response.status_code)
+            raise Exception(f"Failed to download model: HTTP {response.status_code}")
 
         with open(MODEL_PATH, "wb") as f:
             f.write(response.content)
@@ -31,6 +31,7 @@ def download_model():
 
 def load_model():
     download_model()
+
     print("Loading ONNX model...")
     session = ort.InferenceSession(MODEL_PATH, providers=["CPUExecutionProvider"])
     print("ONNX model loaded successfully.")
@@ -45,39 +46,43 @@ def preprocess_image(image_path):
 
     img_resized = cv2.resize(img, (640, 640))
     img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+
     img_input = img_rgb.astype(np.float32) / 255.0
     img_input = np.transpose(img_input, (2, 0, 1))
     img_input = np.expand_dims(img_input, axis=0)
-
     return img_input, img.shape[1], img.shape[0]
+
 
 def predict_image(image_path):
     img_input, orig_w, orig_h = preprocess_image(image_path)
 
-    output = session.run(None, {session.get_inputs()[0].name: img_input})[0][0]
+    outputs = session.run(None, {session.get_inputs()[0].name: img_input})
+    preds = outputs[0]
+    preds = preds.squeeze()
 
     boxes = []
 
-    for pred in output:
-        x1, y1, x2, y2 = pred[:4]
-        obj_conf = pred[4]
-        class_scores = pred[5:]
+    xywh = preds[:4, :]
+    obj_conf = preds[4, :]
+    cls_conf = preds[5:, :] 
 
-        cls = int(np.argmax(class_scores))
-        cls_conf = class_scores[cls]
+    cls_ids = np.argmax(cls_conf, axis=0)
+    cls_scores = cls_conf[cls_ids, np.arange(cls_conf.shape[1])]
 
-        score = obj_conf * cls_conf
+    final_scores = obj_conf * cls_scores
 
-        if score < 0.25:
-            continue
+    keep = final_scores > 0.25
+
+    for i in np.where(keep)[0]:
+        x, y, w, h = xywh[:, i]
 
         boxes.append({
-            "x": float((x1 + x2) / 2),
-            "y": float((y1 + y2) / 2),
-            "width": float(x2 - x1),
-            "height": float(y2 - y1),
-            "class": cls,
-            "confidence": round(float(score), 2)
+            "x": float(x),
+            "y": float(y),
+            "width": float(w),
+            "height": float(h),
+            "class": int(cls_ids[i]),
+            "confidence": round(float(final_scores[i]), 3)
         })
 
     return boxes
