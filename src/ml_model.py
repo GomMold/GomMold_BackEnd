@@ -61,7 +61,7 @@ def predict_image(image_path):
 
         conf = float(obj_conf)
 
-        if conf < 0.15:  
+        if conf < 0.2:  
             continue
 
         x1 = float((x - w / 2) * orig_w / 640)

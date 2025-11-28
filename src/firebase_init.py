@@ -2,14 +2,15 @@ import os
 import json
 import base64
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 
 db = None
+bucket = None
 
 def init_firebase():
-    global db
+    global db, bucket
 
-    if db is not None:
+    if db is not None and bucket is not None:
         return db
 
     try:
@@ -18,6 +19,7 @@ def init_firebase():
 
         if not encoded:
             raise ValueError("Missing FIREBASE_CREDENTIALS_BASE64")
+
         if not bucket_name:
             raise ValueError("Missing FIREBASE_BUCKET")
 
@@ -31,6 +33,8 @@ def init_firebase():
             })
 
         db = firestore.client()
+        bucket = storage.bucket(bucket_name)
+
         return db
 
     except Exception as e:

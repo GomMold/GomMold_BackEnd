@@ -10,10 +10,8 @@ import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
-
 CLASS_NAMES = ["mold"]
-MIN_CONFIDENCE = 0.25
-
+MIN_CONFIDENCE = 0.2
 
 @mold_bp.route("/detect", methods=["POST"])
 @token_required
@@ -30,7 +28,6 @@ def detect_mold(current_user_id):
 
     image = request.files["image"]
     filename = image.filename or "uploaded.jpg"
-
     analysis_name = request.form.get("analysis_name", "Untitled").strip() or "Untitled"
 
     image_bytes = image.read()
@@ -46,35 +43,30 @@ def detect_mold(current_user_id):
     try:
         predictions = predict_image(tmp_path)
 
-        cleaned = []
-        for p in predictions:
-            cleaned.append({
-                **p,
-                "class_name": "mold"
-            })
-
-        cleaned = [p for p in cleaned if p["confidence"] >= MIN_CONFIDENCE]
+        cleaned = [
+            {**p, "class_name": "mold"}
+            for p in predictions if p["confidence"] >= MIN_CONFIDENCE
+        ]
 
         has_mold = len(cleaned) > 0
 
-        kst = pytz.timezone("Asia/Seoul")
-        now = datetime.datetime.now(kst)
-        timestamp = now.strftime("%Y-%m-%d %H:%M")
-
         if has_mold:
             result = {
-                "status": "warning", 
-                "message": "Mold detected", 
+                "status": "warning",
+                "message": "Mold detected",
                 "color": "red"
             }
-        
         else:
-            result = {"status": "safe",
-                      "message": "No mold detected",
-                      "color": "green"
-                    }
+            result = {
+                "status": "safe",
+                "message": "No mold detected",
+                "color": "green"
+            }
 
-        db.collection("detections").add({
+        timestamp_utc = datetime.datetime.utcnow()
+
+        doc_ref = db.collection("detections").document()
+        doc_ref.set({
             "user_id": current_user_id,
             "analysis_name": analysis_name,
             "image_name": filename,
@@ -82,10 +74,14 @@ def detect_mold(current_user_id):
             "result": result["status"],
             "message": result["message"],
             "predictions": cleaned,
-            "timestamp": now
+            "timestamp": timestamp_utc
         })
 
         os.remove(tmp_path)
+
+        kst = pytz.timezone("Asia/Seoul")
+        timestamp_kst = timestamp_utc.replace(tzinfo=pytz.utc).astimezone(kst)
+        formatted_time = timestamp_kst.strftime("%Y-%m-%d %H:%M")
 
         return jsonify({
             "success": True,
@@ -94,9 +90,10 @@ def detect_mold(current_user_id):
                 "analysis_name": analysis_name,
                 "image_url": image_url,
                 "predictions": cleaned,
-                "timestamp": timestamp
+                "timestamp": formatted_time
             }
         }), 200
 
     except Exception as e:
+        print("Detection error:", e)
         return jsonify({"success": False, "error": str(e)}), 500
