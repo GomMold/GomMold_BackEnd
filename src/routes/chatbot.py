@@ -24,6 +24,7 @@ def start_chat():
         ]
     }), 200
 
+
 @chatbot_bp.route("/query", methods=["POST"])
 def query_chat():
     client = get_openai_client()
@@ -35,7 +36,8 @@ def query_chat():
         return jsonify({"success": False, "error": "Missing question"}), 400
 
     try:
-        response = client.chat.completions.create(
+        # NEW OpenAI SDK (Responses API)
+        response = client.responses.create(
             model="gpt-4o-mini",
             messages=[
                 {
