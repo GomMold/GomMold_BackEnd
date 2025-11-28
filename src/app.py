@@ -1,14 +1,21 @@
-import os
 from flask import Flask
 from flask_cors import CORS
+import os
 
-from src.firebase_init import init_firebase
+def create_app():
+    app = Flask(__name__)
+    CORS(app)
 
-app = Flask(__name__)
-CORS(app)
+    @app.route("/health", methods=["GET"])
+    def health():
+        return {"status": "ok"}, 200
 
-from src.routes.mold import mold_bp
-from src.routes.chatbot import chatbot_bp
+    from src.routes.mold import mold_bp
+    app.register_blueprint(mold_bp, url_prefix="/api/mold")
 
-app.register_blueprint(mold_bp)
-app.register_blueprint(chatbot_bp)
+    from src.routes.chatbot import chatbot_bp
+    app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
+
+    return app
+
+app = create_app()
