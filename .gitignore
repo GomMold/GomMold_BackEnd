@@ -8,3 +8,4 @@ firebase_config.json
 *.weights
 runs/
 service-account.json
+best.pt
