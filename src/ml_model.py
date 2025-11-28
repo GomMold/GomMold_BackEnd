@@ -20,7 +20,7 @@ def download_model():
         response = requests.get(MODEL_URL, stream=True)
 
         if response.status_code != 200:
-            raise Exception(f"Failed to download model: HTTP {response.status_code}")
+            raise Exception(f"Failed to download model: HTTP", response.status_code)
 
         with open(MODEL_PATH, "wb") as f:
             f.write(response.content)
@@ -31,7 +31,6 @@ def download_model():
 
 def load_model():
     download_model()
-
     print("Loading ONNX model...")
     session = ort.InferenceSession(MODEL_PATH, providers=["CPUExecutionProvider"])
     print("ONNX model loaded successfully.")
@@ -41,13 +40,11 @@ session = load_model()
 
 def preprocess_image(image_path):
     img = cv2.imread(str(image_path))
-
     if img is None:
         raise ValueError("Could not load image.")
 
     img_resized = cv2.resize(img, (640, 640))
     img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-
     img_input = img_rgb.astype(np.float32) / 255.0
     img_input = np.transpose(img_input, (2, 0, 1))
     img_input = np.expand_dims(img_input, axis=0)
@@ -66,12 +63,12 @@ def predict_image(image_path):
         obj_conf = pred[4]
         class_scores = pred[5:]
 
-        cls = np.argmax(class_scores)
+        cls = int(np.argmax(class_scores))
         cls_conf = class_scores[cls]
 
         score = obj_conf * cls_conf
 
-        if score < 0.5:
+        if score < 0.25:
             continue
 
         boxes.append({
@@ -79,7 +76,7 @@ def predict_image(image_path):
             "y": float((y1 + y2) / 2),
             "width": float(x2 - x1),
             "height": float(y2 - y1),
-            "class": int(cls),
+            "class": cls,
             "confidence": round(float(score), 2)
         })
 
