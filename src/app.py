@@ -1,33 +1,30 @@
-import os
 from flask import Flask
 from flask_cors import CORS
-from dotenv import load_dotenv
-from src.firebase_init import init_firebase
-from src.routes.auth import auth_bp
-from src.routes.user import user_bp
-from src.routes.history import history_bp
-from src.routes.chatbot import chatbot_bp
-from src.routes.mold import mold_bp
+import os
 
-load_dotenv()
+def create_app():
+    app = Flask(__name__)
+    CORS(app)
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-CORS(app)
+    @app.route("/health", methods=["GET"])
+    def health():
+        return {"status": "healthy"}, 200
 
-init_firebase()
+    from src.routes.auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
-app.register_blueprint(user_bp, url_prefix="/api/user")
-app.register_blueprint(history_bp, url_prefix="/api/history")
-app.register_blueprint(mold_bp, url_prefix="/api/mold")
-app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
+    from src.routes.user import user_bp
+    app.register_blueprint(user_bp, url_prefix="/api/user")
 
-@app.route("/health")
-def health():
-    return {"status": "healthy"}, 200
+    from src.routes.history import history_bp
+    app.register_blueprint(history_bp, url_prefix="/api/history")
 
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    from src.routes.mold import mold_bp
+    app.register_blueprint(mold_bp, url_prefix="/api/mold")
+
+    from src.routes.chatbot import chatbot_bp
+    app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
+
+    return app
+
+app = create_app()

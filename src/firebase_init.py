@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -12,15 +13,17 @@ def init_firebase():
         return db
 
     try:
-        cred_json = os.getenv("FIREBASE_CREDENTIALS")
+        encoded = os.getenv("FIREBASE_CREDENTIALS_BASE64")
         bucket_name = os.getenv("FIREBASE_BUCKET")
 
-        if not cred_json:
-            raise ValueError("Missing FIREBASE_CREDENTIALS")
+        if not encoded:
+            raise ValueError("Missing FIREBASE_CREDENTIALS_BASE64")
         if not bucket_name:
             raise ValueError("Missing FIREBASE_BUCKET")
 
+        cred_json = base64.b64decode(encoded).decode("utf-8")
         cred_dict = json.loads(cred_json)
+
 
         if not firebase_admin._apps:
             cred = credentials.Certificate(cred_dict)
