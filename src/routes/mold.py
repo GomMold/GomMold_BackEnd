@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from src.firebase_init import init_firebase
 from src.token_utils import token_required
 from firebase_admin import storage
-from google.cloud import firestore
 from src.ml_model import predict_image
 import datetime
 import pytz
@@ -11,8 +10,7 @@ import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
-CLASS_NAMES = ["mold"]
-MIN_CONFIDENCE = 0.2
+MIN_CONFIDENCE = 0.20
 
 @mold_bp.route("/detect", methods=["POST"])
 @token_required
@@ -51,16 +49,15 @@ def detect_mold(current_user_id):
 
         has_mold = len(cleaned) > 0
 
-        result = (
-            {"status": "warning", "message": "Mold detected", "color": "red"}
-            if has_mold
-            else {"status": "safe", "message": "No mold detected", "color": "green"}
-        )
+        result = {
+            "status": "warning" if has_mold else "safe",
+            "message": "Mold detected" if has_mold else "No mold detected",
+            "color": "red" if has_mold else "green"
+        }
 
-        timestamp_value = firestore.SERVER_TIMESTAMP
+        timestamp_utc = datetime.datetime.utcnow()
 
-        doc_ref = db.collection("detections").document()
-        doc_ref.set({
+        db.collection("detections").add({
             "user_id": current_user_id,
             "analysis_name": analysis_name,
             "image_name": filename,
@@ -68,15 +65,14 @@ def detect_mold(current_user_id):
             "result": result["status"],
             "message": result["message"],
             "predictions": cleaned,
-            "timestamp": timestamp_value
+            "timestamp": timestamp_utc
         })
 
         os.remove(tmp_path)
 
-        now_kst = datetime.datetime.utcnow().replace(tzinfo=pytz.utc).astimezone(
-            pytz.timezone("Asia/Seoul")
-        )
-        formatted_time = now_kst.strftime("%Y-%m-%d %H:%M")
+        kst = pytz.timezone("Asia/Seoul")
+        timestamp_kst = timestamp_utc.replace(tzinfo=pytz.utc).astimezone(kst)
+        formatted_time = timestamp_kst.strftime("%Y-%m-%d %H:%M")
 
         return jsonify({
             "success": True,

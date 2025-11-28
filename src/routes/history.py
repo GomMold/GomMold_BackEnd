@@ -2,7 +2,6 @@ from flask import Blueprint, jsonify, request
 from src.firebase_init import init_firebase
 from src.token_utils import token_required
 from google.cloud import firestore
-import datetime
 
 history_bp = Blueprint("history_bp", __name__)
 
@@ -14,16 +13,15 @@ def get_history(current_user_id):
         return jsonify({"success": False, "error": "Server connection error"}), 500
 
     try:
-        detections_ref = (
+        detections = (
             db.collection("detections")
-            .where("user_id", "==", current_user_id)
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+              .where("user_id", "==", current_user_id)
+              .order_by("timestamp", direction=firestore.Query.DESCENDING)
+              .get()
         )
 
-        docs = detections_ref.get()
         history_list = []
-
-        for doc in docs:
+        for doc in detections:
             data = doc.to_dict()
             history_list.append({
                 "id": doc.id,
@@ -32,7 +30,7 @@ def get_history(current_user_id):
                 "result": data.get("result"),
                 "message": data.get("message"),
                 "predictions": data.get("predictions", []),
-                "timestamp": data.get("timestamp")
+                "timestamp": str(data.get("timestamp"))
             })
 
         return jsonify({
@@ -42,6 +40,7 @@ def get_history(current_user_id):
         }), 200
 
     except Exception as e:
+        print("History error:", e)
         return jsonify({
             "success": False,
             "error": "Failed to retrieve history",
