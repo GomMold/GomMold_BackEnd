@@ -5,7 +5,7 @@ import cv2
 import onnxruntime as ort
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
-MODEL_PATH = os.path.join(MODEL_DIR, "best.onnx")
+MODEL_PATH = os.path.join(MODEL_DIR, "best.pt")
 MODEL_URL = os.getenv("MODEL_URL")
 
 def download_model():
