@@ -3,6 +3,11 @@ import json
 import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
+from flask import Flask
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
 
 db = None
 
@@ -36,3 +41,9 @@ def init_firebase():
     except Exception as e:
         print("Firebase init error:", e)
         return None
+
+from routes.mold import mold_bp
+from routes.chatbot import chatbot_bp
+
+app.register_blueprint(mold_bp)
+app.register_blueprint(chatbot_bp)
