@@ -10,6 +10,7 @@ def get_openai_client():
         raise Exception("OPENAI_API_KEY is missing")
     return OpenAI(api_key=api_key)
 
+
 @chatbot_bp.route("/start", methods=["GET"])
 def start_chat():
     return jsonify({
@@ -24,6 +25,7 @@ def start_chat():
         ]
     }), 200
 
+
 @chatbot_bp.route("/query", methods=["POST"])
 def query_chat():
     client = get_openai_client()
@@ -35,20 +37,30 @@ def query_chat():
         return jsonify({"success": False, "error": "Missing question"}), 400
 
     try:
-        response = client.chat.completions.create(
+        # NEW OpenAI API format
+        response = client.responses.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": 
-                 "You are a friendly and informative mold prevention assistant. "
-                 "Provide short, clear, and safe advice about mold."},
-                {"role": "user", "content": question}
+            input=[
+                {
+                    "role": "system",
+                    "content": "You are a friendly mold-prevention assistant. Provide short, safe, and helpful advice."
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
             ]
         )
-        answer = response.choices[0].message.content.strip()
 
-        return jsonify({"success": True, "data": {"answer": answer}}), 200
+        answer = response.output_text
+
+        return jsonify({
+            "success": True,
+            "data": {"answer": answer}
+        }), 200
 
     except Exception as e:
+        print("Chatbot error:", e)
         return jsonify({
             "success": False,
             "error": "Chat service error",
