@@ -10,10 +10,7 @@ import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
-
-CLASS_NAMES = ["mold"]
-MIN_CONFIDENCE = 0.25
-
+MIN_CONFIDENCE = 0.20
 
 @mold_bp.route("/detect", methods=["POST"])
 @token_required
@@ -25,59 +22,41 @@ def detect_mold(current_user_id):
     bucket_name = os.getenv("FIREBASE_BUCKET")
     bucket = storage.bucket(name=bucket_name)
 
-    # Validate image file
     if "image" not in request.files:
         return jsonify({"success": False, "error": "No image uploaded"}), 400
 
     image = request.files["image"]
     filename = image.filename or "uploaded.jpg"
-
-    # Name of the analysis
     analysis_name = request.form.get("analysis_name", "Untitled").strip() or "Untitled"
 
-    # Read bytes
     image_bytes = image.read()
 
-    # Upload to Firebase Storage
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
     blob.upload_from_string(image_bytes, content_type=image.content_type)
     image_url = blob.public_url
 
-    # Save a temporary file for model inference
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
         tmp.write(image_bytes)
         tmp_path = tmp.name
 
     try:
-        # Run ONNX model prediction
         predictions = predict_image(tmp_path)
 
-        # Add class_name field (always "mold" for 1-class model)
-        cleaned = []
-        for p in predictions:
-            cleaned.append({
-                **p,
-                "class_name": "mold"
-            })
+        cleaned = [
+            {**p, "class_name": "mold"}
+            for p in predictions if p["confidence"] >= MIN_CONFIDENCE
+        ]
 
-        # Apply confidence threshold
-        cleaned = [p for p in cleaned if p["confidence"] >= MIN_CONFIDENCE]
-
-        # If ANY detection remains → mold detected
         has_mold = len(cleaned) > 0
 
-        # Timestamp (KST)
-        kst = pytz.timezone("Asia/Seoul")
-        now = datetime.datetime.now(kst)
-        timestamp = now.strftime("%Y-%m-%d %H:%M")
+        result = {
+            "status": "warning" if has_mold else "safe",
+            "message": "Mold detected" if has_mold else "No mold detected",
+            "color": "red" if has_mold else "green"
+        }
 
-        # Final result
-        if has_mold:
-            result = {"status": "warning", "message": "Mold detected", "color": "red"}
-        else:
-            result = {"status": "safe", "message": "No mold detected", "color": "green"}
+        timestamp_utc = datetime.datetime.utcnow()
 
-        # Save to Firestore
         db.collection("detections").add({
             "user_id": current_user_id,
             "analysis_name": analysis_name,
@@ -86,13 +65,15 @@ def detect_mold(current_user_id):
             "result": result["status"],
             "message": result["message"],
             "predictions": cleaned,
-            "timestamp": now
+            "timestamp": timestamp_utc
         })
 
-        # Remove temporary file
         os.remove(tmp_path)
 
-        # Return response
+        kst = pytz.timezone("Asia/Seoul")
+        timestamp_kst = timestamp_utc.replace(tzinfo=pytz.utc).astimezone(kst)
+        formatted_time = timestamp_kst.strftime("%Y-%m-%d %H:%M")
+
         return jsonify({
             "success": True,
             "data": {
@@ -100,9 +81,10 @@ def detect_mold(current_user_id):
                 "analysis_name": analysis_name,
                 "image_url": image_url,
                 "predictions": cleaned,
-                "timestamp": timestamp
+                "timestamp": formatted_time
             }
         }), 200
 
     except Exception as e:
+        print("Detection error:", e)
         return jsonify({"success": False, "error": str(e)}), 500

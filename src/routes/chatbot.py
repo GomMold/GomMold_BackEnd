@@ -39,19 +39,27 @@ def query_chat():
         # NEW OpenAI SDK (Responses API)
         response = client.responses.create(
             model="gpt-4o-mini",
-            input=question,
-            instructions=(
-                "You are a friendly mold-prevention assistant. "
-                "Provide short, safe, and helpful advice."
-            )
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a friendly mold-prevention assistant. Provide short, safe, and helpful advice."
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ]
         )
 
-        # Extract text properly (new SDK)
-        answer = response.output_text
+        answer = response.choices[0].message.content.strip()
 
-        return jsonify({"success": True, "data": {"answer": answer}}), 200
+        return jsonify({
+            "success": True,
+            "data": {"answer": answer}
+        }), 200
 
     except Exception as e:
+        print("Chatbot error:", e)
         return jsonify({
             "success": False,
             "error": "Chat service error",
