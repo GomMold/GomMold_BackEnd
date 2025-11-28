@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from src.firebase_init import init_firebase
 from src.token_utils import token_required
 from google.cloud import firestore
+import datetime
 
 history_bp = Blueprint("history_bp", __name__)
 
@@ -44,5 +45,45 @@ def get_history(current_user_id):
         return jsonify({
             "success": False,
             "error": "Failed to retrieve history",
+            "details": str(e)
+        }), 500
+
+@history_bp.route("/<doc_id>", methods=["PUT"])
+@token_required
+def update_analysis_name(current_user_id, doc_id):
+    db = init_firebase()
+    if db is None:
+        return jsonify({"success": False, "error": "Server connection error"}), 500
+
+    new_name = request.json.get("analysis_name")
+
+    if not new_name:
+        return jsonify({"success": False, "error": "analysis_name is required"}), 400
+
+    try:
+        doc_ref = db.collection("detections").document(doc_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            return jsonify({"success": False, "error": "Record not found"}), 404
+
+        if doc.to_dict().get("user_id") != current_user_id:
+            return jsonify({"success": False, "error": "Unauthorized"}), 403
+
+        doc_ref.update({
+            "analysis_name": new_name,
+            "updated_at": datetime.datetime.utcnow()
+        })
+
+        return jsonify({
+            "success": True,
+            "message": "Analysis title updated successfully."
+        }), 200
+
+    except Exception as e:
+        print("Update error:", e)
+        return jsonify({
+            "success": False,
+            "error": "Failed to update analysis name",
             "details": str(e)
         }), 500
