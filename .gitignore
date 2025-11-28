@@ -6,7 +6,6 @@ __pycache__/
 .DS_Store
 firebase_config.json
 *.weights
-*.onnx
 runs/
 service-account.json
 best.pt
