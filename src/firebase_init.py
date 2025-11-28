@@ -24,7 +24,6 @@ def init_firebase():
         cred_json = base64.b64decode(encoded).decode("utf-8")
         cred_dict = json.loads(cred_json)
 
-
         if not firebase_admin._apps:
             cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred, {

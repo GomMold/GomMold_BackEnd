@@ -10,7 +10,6 @@ MODEL_URL = os.getenv("MODEL_URL")
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-
 def download_model():
     if os.path.exists(MODEL_PATH):
         return
@@ -29,7 +28,6 @@ def load_model():
     download_model()
     session = ort.InferenceSession(MODEL_PATH, providers=["CPUExecutionProvider"])
     return session
-
 
 session = load_model()
 
