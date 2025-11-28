@@ -11,7 +11,7 @@ import tempfile
 mold_bp = Blueprint("mold_bp", __name__)
 
 CLASS_NAMES = ["mold", "no_mold"]
-MIN_CONFIDENCE = 0.15   # lowered for stable cloud inference
+MIN_CONFIDENCE = 0.25
 
 @mold_bp.route("/detect", methods=["POST"])
 @token_required
@@ -31,15 +31,12 @@ def detect_mold(current_user_id):
 
     analysis_name = request.form.get("analysis_name", "Untitled").strip() or "Untitled"
 
-    # Read original bytes
     image_bytes = image.read()
 
-    # Upload to Firebase Storage
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
     blob.upload_from_string(image_bytes, content_type=image.content_type)
     image_url = blob.public_url
 
-    # Save to temp file for ONNX prediction
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
         tmp.write(image_bytes)
         tmp_path = tmp.name
@@ -47,7 +44,6 @@ def detect_mold(current_user_id):
     try:
         predictions = predict_image(tmp_path)
 
-        # Attach readable class names
         cleaned = []
         for p in predictions:
             cleaned.append({
@@ -55,10 +51,8 @@ def detect_mold(current_user_id):
                 "class_name": CLASS_NAMES[p["class"]] if p["class"] < len(CLASS_NAMES) else "unknown"
             })
 
-        # Apply confidence filter
         cleaned = [p for p in cleaned if p["confidence"] >= MIN_CONFIDENCE]
 
-        # Determine result
         has_mold = any(p["class_name"] == "mold" for p in cleaned)
 
         kst = pytz.timezone("Asia/Seoul")
