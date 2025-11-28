@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from src.firebase_init import init_firebase
 from src.token_utils import token_required
 from firebase_admin import storage
+from google.cloud import firestore
 from src.ml_model import predict_image
 import datetime
 import pytz
@@ -50,20 +51,13 @@ def detect_mold(current_user_id):
 
         has_mold = len(cleaned) > 0
 
-        if has_mold:
-            result = {
-                "status": "warning",
-                "message": "Mold detected",
-                "color": "red"
-            }
-        else:
-            result = {
-                "status": "safe",
-                "message": "No mold detected",
-                "color": "green"
-            }
+        result = (
+            {"status": "warning", "message": "Mold detected", "color": "red"}
+            if has_mold
+            else {"status": "safe", "message": "No mold detected", "color": "green"}
+        )
 
-        timestamp_utc = datetime.datetime.utcnow()
+        timestamp_value = firestore.SERVER_TIMESTAMP
 
         doc_ref = db.collection("detections").document()
         doc_ref.set({
@@ -74,14 +68,15 @@ def detect_mold(current_user_id):
             "result": result["status"],
             "message": result["message"],
             "predictions": cleaned,
-            "timestamp": timestamp_utc
+            "timestamp": timestamp_value
         })
 
         os.remove(tmp_path)
 
-        kst = pytz.timezone("Asia/Seoul")
-        timestamp_kst = timestamp_utc.replace(tzinfo=pytz.utc).astimezone(kst)
-        formatted_time = timestamp_kst.strftime("%Y-%m-%d %H:%M")
+        now_kst = datetime.datetime.utcnow().replace(tzinfo=pytz.utc).astimezone(
+            pytz.timezone("Asia/Seoul")
+        )
+        formatted_time = now_kst.strftime("%Y-%m-%d %H:%M")
 
         return jsonify({
             "success": True,
