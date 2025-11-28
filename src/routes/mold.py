@@ -10,7 +10,7 @@ import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
-# Only 1 class in your ONNX model
+
 CLASS_NAMES = ["mold"]
 MIN_CONFIDENCE = 0.25
 
