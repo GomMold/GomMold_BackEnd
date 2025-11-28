@@ -1,33 +1,38 @@
 import os
-from flask import Flask
-from flask_cors import CORS
-from dotenv import load_dotenv
-from src.firebase_init import init_firebase
-from src.routes.auth import auth_bp
-from src.routes.user import user_bp
-from src.routes.history import history_bp
-from src.routes.chatbot import chatbot_bp
-from src.routes.mold import mold_bp
+import json
+import base64
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-load_dotenv()
+db = None
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-CORS(app)
+def init_firebase():
+    global db
 
-init_firebase()
+    if db is not None:
+        return db
 
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
-app.register_blueprint(user_bp, url_prefix="/api/user")
-app.register_blueprint(history_bp, url_prefix="/api/history")
-app.register_blueprint(mold_bp, url_prefix="/api/mold")
-app.register_blueprint(chatbot_bp, url_prefix="/api/chatbot")
+    try:
+        encoded = os.getenv("FIREBASE_CREDENTIALS_BASE64")
+        bucket_name = os.getenv("FIREBASE_BUCKET")
 
-@app.route("/health")
-def health():
-    return {"status": "healthy"}, 200
+        if not encoded:
+            raise ValueError("Missing FIREBASE_CREDENTIALS_BASE64")
+        if not bucket_name:
+            raise ValueError("Missing FIREBASE_BUCKET")
 
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
-    app.run(host="0.0.0.0", port=port, debug=debug)
+        cred_json = base64.b64decode(encoded).decode("utf-8")
+        cred_dict = json.loads(cred_json)
+
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred, {
+                "storageBucket": bucket_name
+            })
+
+        db = firestore.client()
+        return db
+
+    except Exception as e:
+        print("Firebase init error:", e)
+        return None

@@ -10,8 +10,10 @@ import tempfile
 
 mold_bp = Blueprint("mold_bp", __name__)
 
-CLASS_NAMES = ["mold", "no_mold"]
+# Only 1 class in your ONNX model
+CLASS_NAMES = ["mold"]
 MIN_CONFIDENCE = 0.25
+
 
 @mold_bp.route("/detect", methods=["POST"])
 @token_required
@@ -23,42 +25,53 @@ def detect_mold(current_user_id):
     bucket_name = os.getenv("FIREBASE_BUCKET")
     bucket = storage.bucket(name=bucket_name)
 
+    # Validate image file
     if "image" not in request.files:
         return jsonify({"success": False, "error": "No image uploaded"}), 400
 
     image = request.files["image"]
     filename = image.filename or "uploaded.jpg"
 
+    # Name of the analysis
     analysis_name = request.form.get("analysis_name", "Untitled").strip() or "Untitled"
 
+    # Read bytes
     image_bytes = image.read()
 
+    # Upload to Firebase Storage
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
     blob.upload_from_string(image_bytes, content_type=image.content_type)
     image_url = blob.public_url
 
+    # Save a temporary file for model inference
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
         tmp.write(image_bytes)
         tmp_path = tmp.name
 
     try:
+        # Run ONNX model prediction
         predictions = predict_image(tmp_path)
 
+        # Add class_name field (always "mold" for 1-class model)
         cleaned = []
         for p in predictions:
             cleaned.append({
                 **p,
-                "class_name": CLASS_NAMES[p["class"]] if p["class"] < len(CLASS_NAMES) else "unknown"
+                "class_name": "mold"
             })
 
+        # Apply confidence threshold
         cleaned = [p for p in cleaned if p["confidence"] >= MIN_CONFIDENCE]
 
-        has_mold = any(p["class_name"] == "mold" for p in cleaned)
+        # If ANY detection remains → mold detected
+        has_mold = len(cleaned) > 0
 
+        # Timestamp (KST)
         kst = pytz.timezone("Asia/Seoul")
         now = datetime.datetime.now(kst)
         timestamp = now.strftime("%Y-%m-%d %H:%M")
 
+        # Final result
         if has_mold:
             result = {"status": "warning", "message": "Mold detected", "color": "red"}
         else:
@@ -76,8 +89,10 @@ def detect_mold(current_user_id):
             "timestamp": now
         })
 
+        # Remove temporary file
         os.remove(tmp_path)
 
+        # Return response
         return jsonify({
             "success": True,
             "data": {
