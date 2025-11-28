@@ -24,7 +24,6 @@ def start_chat():
         ]
     }), 200
 
-
 @chatbot_bp.route("/query", methods=["POST"])
 def query_chat():
     client = get_openai_client()
@@ -36,30 +35,20 @@ def query_chat():
         return jsonify({"success": False, "error": "Missing question"}), 400
 
     try:
-        # NEW OpenAI SDK (Responses API)
         response = client.responses.create(
             model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a friendly mold-prevention assistant. Provide short, safe, and helpful advice."
-                },
-                {
-                    "role": "user",
-                    "content": question
-                }
-            ]
+            input=question,
+            instructions=(
+                "You are a friendly mold-prevention assistant. "
+                "Provide short, safe, and helpful advice."
+            )
         )
 
-        answer = response.choices[0].message.content.strip()
+        answer = response.output_text
 
-        return jsonify({
-            "success": True,
-            "data": {"answer": answer}
-        }), 200
+        return jsonify({"success": True, "data": {"answer": answer}}), 200
 
     except Exception as e:
-        print("Chatbot error:", e)
         return jsonify({
             "success": False,
             "error": "Chat service error",
