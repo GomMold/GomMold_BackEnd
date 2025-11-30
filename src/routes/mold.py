@@ -57,7 +57,6 @@ def detect_mold(current_user_id):
 
         timestamp_utc = datetime.datetime.utcnow()
 
-        
         write_result, doc_ref = db.collection("detections").add({
             "user_id": current_user_id,
             "analysis_name": analysis_name,
@@ -78,7 +77,7 @@ def detect_mold(current_user_id):
         return jsonify({
             "success": True,
             "data": {
-                "id": doc_ref.id,         # ⭐⭐⭐ THIS FIXES EVERYTHING ⭐⭐⭐
+                "id": doc_ref.id,
                 **result,
                 "analysis_name": analysis_name,
                 "image_url": image_url,
