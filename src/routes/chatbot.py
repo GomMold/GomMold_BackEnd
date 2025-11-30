@@ -46,7 +46,7 @@ def query_chat():
 
         answer = response.output_text
 
-        return jsonify({"success": True, "data": {"answer": answer}}), 200
+        return jsonify({"success": True, "data": {"reply": answer}}), 200
 
     except Exception as e:
         return jsonify({

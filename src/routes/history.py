@@ -3,8 +3,10 @@ from src.firebase_init import init_firebase
 from src.token_utils import token_required
 from google.cloud import firestore
 import datetime
+import pytz
 
 history_bp = Blueprint("history_bp", __name__)
+
 
 @history_bp.route("/", methods=["GET"])
 @token_required
@@ -16,14 +18,28 @@ def get_history(current_user_id):
     try:
         detections = (
             db.collection("detections")
-              .where("user_id", "==", current_user_id)
-              .order_by("timestamp", direction=firestore.Query.DESCENDING)
-              .get()
+            .where("user_id", "==", current_user_id)
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .get()
         )
 
         history_list = []
+        kst = pytz.timezone("Asia/Seoul")  
+
         for doc in detections:
             data = doc.to_dict()
+            ts = data.get("timestamp")
+
+
+            if isinstance(ts, datetime.datetime):
+                   
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=pytz.utc)
+                ts_kst = ts.astimezone(kst)
+                formatted_time = ts_kst.strftime("%Y-%m-%d %H:%M")
+            else:
+                formatted_time = str(ts)
+
             history_list.append({
                 "id": doc.id,
                 "analysis_name": data.get("analysis_name", "Untitled"),
@@ -31,7 +47,7 @@ def get_history(current_user_id):
                 "result": data.get("result"),
                 "message": data.get("message"),
                 "predictions": data.get("predictions", []),
-                "timestamp": str(data.get("timestamp"))
+                "timestamp": formatted_time,
             })
 
         return jsonify({
@@ -47,6 +63,8 @@ def get_history(current_user_id):
             "error": "Failed to retrieve history",
             "details": str(e)
         }), 500
+
+
 
 @history_bp.route("/<doc_id>", methods=["PUT"])
 @token_required
