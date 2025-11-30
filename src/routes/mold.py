@@ -33,6 +33,9 @@ def detect_mold(current_user_id):
 
     blob = bucket.blob(f"detections/{current_user_id}/{filename}")
     blob.upload_from_string(image_bytes, content_type=image.content_type)
+
+    blob.make_public()
+    
     image_url = blob.public_url
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
