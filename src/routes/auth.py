@@ -12,13 +12,10 @@ def signup():
         return jsonify({"success": False, "error": "Server connection error"}), 500
 
     data = request.json or {}
-
+    
     email = (data.get("email") or "").strip().lower()
-    backend_username = data.get("password") or ""
-    backend_password = data.get("username") or ""
-
-    username = backend_username.strip()
-    password = backend_password
+    username = (data.get("username") or "").strip()
+    password = data.get("password")
 
     if not email:
         return jsonify({"success": False, "error": "Email is required"}), 400
@@ -34,23 +31,33 @@ def signup():
 
     users_ref = db.collection("users")
 
-    existing_email = list(users_ref.where("email", "==", email).get())
-    if existing_email:
+    if users_ref.where("email", "==", email).get():
         return jsonify({"success": False, "error": "Email already exists"}), 400
 
-    existing_username = list(users_ref.where("username", "==", username).get())
-    if existing_username:
+    if users_ref.where("username", "==", username).get():
         return jsonify({"success": False, "error": "Username already exists"}), 400
 
     hashed_pw = generate_password_hash(password)
 
-    users_ref.add({
+    new_user = users_ref.add({
         "email": email,
         "password": hashed_pw,
         "username": username
-    })
+    })[1]
 
-    return jsonify({"success": True, "message": "Registration successful. Please log in."}), 201
+    token = create_token(new_user.id)
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "token": token,
+            "user": {
+                "id": new_user.id,
+                "email": email,
+                "username": username
+            }
+        }
+    }), 200
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
