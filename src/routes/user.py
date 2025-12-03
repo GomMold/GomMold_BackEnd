@@ -42,22 +42,28 @@ def update_user(current_user_id):
     if not data:
         return jsonify({"success": False, "error": "No data provided"}), 400
 
+    users_ref = db.collection("users")
+
     if "username" in data:
-        new_username = data["username"]
-        users_ref = db.collection("users")
+        new_username = data["username"].strip()
 
-        existing_users = users_ref.where("username", "==", new_username).get()
+        if not new_username:
+            return jsonify({"success": False, "error": "Username cannot be empty."}), 400
+        
+        existing = list(users_ref.where("username", "==", new_username).get())
 
-        for doc in existing_users:
+        for doc in existing:
             if doc.id != current_user_id:
                 return jsonify({"success": False, "error": "Username has been taken."}), 400
-        
-        updates["username"] =  new_username
 
-    if "password" in data:
-        if len(data["password"]) < 5:
-            return jsonify({"success": False, "error": "Password too short."}), 400
-        updates["password"] = generate_password_hash(data["password"])
+        updates["username"] = new_username
+
+        new_password = data["password"]
+
+        if len(new_password) < 6:
+            return jsonify({"success": False, "error": "Password must be at least 6 characters."}), 400
+
+        updates["password"] = generate_password_hash(new_password)
 
     if updates:
         try:

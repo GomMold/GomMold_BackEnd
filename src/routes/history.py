@@ -7,7 +7,6 @@ import pytz
 
 history_bp = Blueprint("history_bp", __name__)
 
-
 @history_bp.route("/", methods=["GET"])
 @token_required
 def get_history(current_user_id):
@@ -63,8 +62,6 @@ def get_history(current_user_id):
             "error": "Failed to retrieve history",
             "details": str(e)
         }), 500
-
-
 
 @history_bp.route("/<doc_id>", methods=["PUT"])
 @token_required

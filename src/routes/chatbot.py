@@ -15,13 +15,13 @@ def start_chat():
     return jsonify({
         "success": True,
         "data": {
-            "message": "Hi! I'm Gom, your mold assistant. I can help you understand mold risks, prevention, and cleaning tips!"
-        },
-        "suggested_questions": [
-            "How can I prevent mold from growing?",
-            "What should I do if I see black mold?",
-            "Is it safe to clean mold myself?"
-        ]
+            "message": "Hi! I'm Gom, your mold assistant. I can help you understand mold risks, prevention, and cleaning tips!",
+            "suggested_questions": [
+                "How can I prevent mold from growing?",
+                "What should I do if I see black mold?",
+                "Is it safe to clean mold myself?"
+            ]
+        }
     }), 200
 
 @chatbot_bp.route("/query", methods=["POST"])
@@ -46,7 +46,12 @@ def query_chat():
 
         answer = response.output_text
 
-        return jsonify({"success": True, "data": {"reply": answer}}), 200
+        return jsonify({
+            "success": True,
+            "data": {
+                "reply": answer
+            }
+        }), 200
 
     except Exception as e:
         return jsonify({
