@@ -36,39 +36,38 @@ def update_user(current_user_id):
     if db is None:
         return jsonify({"success": False, "error": "Server connection error"}), 500
 
-    data = request.get_json()
+    data = request.get_json() or {}
     updates = {}
 
-    if not data:
-        return jsonify({"success": False, "error": "No data provided"}), 400
-
     users_ref = db.collection("users")
+    user_doc = users_ref.document(current_user_id)
 
-    if "username" in data:
-        new_username = data["username"].strip()
-
+    new_username = data.get("username")
+    if new_username is not None:
+        new_username = new_username.strip()
         if not new_username:
-            return jsonify({"success": False, "error": "Username cannot be empty."}), 400
-        
-        existing = list(users_ref.where("username", "==", new_username).get())
+            return jsonify({"success": False, "error": "Username cannot be empty"}), 400
 
+        existing = users_ref.where("username", "==", new_username).get()
         for doc in existing:
             if doc.id != current_user_id:
-                return jsonify({"success": False, "error": "Username has been taken."}), 400
+                return jsonify({"success": False, "error": "Username has been taken"}), 400
 
         updates["username"] = new_username
 
-        new_password = data["password"]
-
+    new_password = data.get("password")
+    if new_password is not None:
         if len(new_password) < 6:
-            return jsonify({"success": False, "error": "Password must be at least 6 characters."}), 400
+            return jsonify({"success": False, "error": "Password must be at least 6 characters"}), 400
 
         updates["password"] = generate_password_hash(new_password)
 
-    if updates:
-        try:
-            db.collection("users").document(current_user_id).update(updates)
-        except Exception as e:
-            return jsonify({"success": False, "error": f"Error updating profile: {e}"}), 400
+    if not updates:
+        return jsonify({"success": False, "error": "No fields to update"}), 400
 
-    return jsonify({"success": True, "message": "Profile updated successfully."}), 200
+    try:
+        user_doc.update(updates)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Error updating profile: {e}"}), 400
+
+    return jsonify({"success": True, "message": "Profile updated successfully"}), 200
