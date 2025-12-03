@@ -12,9 +12,13 @@ def signup():
         return jsonify({"success": False, "error": "Server connection error"}), 500
 
     data = request.json or {}
+
     email = (data.get("email") or "").strip().lower()
-    username = (data.get("username") or "").strip()
-    password = data.get("password")
+    backend_username = data.get("password") or ""
+    backend_password = data.get("username") or ""
+
+    username = backend_username.strip()
+    password = backend_password
 
     if not email:
         return jsonify({"success": False, "error": "Email is required"}), 400
